@@ -27,7 +27,7 @@ jobs:
         unzip tasteway_flutter_with_key.zip -d tasteway_project
         ls -la tasteway_project/
 
-    -     - name: Fix yandex_mapkit version
+    - name: Fix yandex_mapkit version
       run: |
         cd tasteway_project
         sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' pubspec.yaml
@@ -35,21 +35,18 @@ jobs:
     - name: Fix Android V2 embedding
       run: |
         cd tasteway_project
-        # Обновляем AndroidManifest для V2 embedding
         sed -i 's/android:name="io.flutter.app.FlutterApplication"/android:name="${applicationName}"/' android/app/src/main/AndroidManifest.xml
-        # Создаём MainActivity.kt с V2 embedding
         mkdir -p android/app/src/main/kotlin/com/example/tasteway
-        cat > android/app/src/main/kotlin/com/example/tasteway/MainActivity.kt << 'EOF'
-        package com.example.tasteway
-        import io.flutter.embedding.android.FlutterActivity
-        class MainActivity: FlutterActivity()
-        EOF
+        echo 'package com.example.tasteway' > android/app/src/main/kotlin/com/example/tasteway/MainActivity.kt
+        echo '' >> android/app/src/main/kotlin/com/example/tasteway/MainActivity.kt
+        echo 'import io.flutter.embedding.android.FlutterActivity' >> android/app/src/main/kotlin/com/example/tasteway/MainActivity.kt
+        echo '' >> android/app/src/main/kotlin/com/example/tasteway/MainActivity.kt
+        echo 'class MainActivity: FlutterActivity()' >> android/app/src/main/kotlin/com/example/tasteway/MainActivity.kt
 
     - name: Get dependencies
       run: |
         cd tasteway_project
         flutter pub get
-
 
     - name: Build APK
       run: |
@@ -62,4 +59,5 @@ jobs:
         name: TasteWay-APK
         path: tasteway_project/build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
+
         
