@@ -59,5 +59,3 @@ jobs:
         name: TasteWay-APK
         path: tasteway_project/build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
-
-        
