@@ -1,0 +1,29 @@
+name: Build APK v2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+    - uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+    - run: |
+        unzip tasteway_flutter_with_key.zip -d tasteway_project
+        cd tasteway_project
+        sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' pubspec.yaml
+        flutter pub get
+        flutter build apk --release
+    - uses: actions/upload-artifact@v4
+      with:
+        name: TasteWay-APK
+        path: tasteway_project/build/app/outputs/flutter-apk/app-release.apk
+        retention-days: 30
