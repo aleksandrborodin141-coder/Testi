@@ -16,102 +16,34 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Setup Flutter
+    - name: Setup Flutter 3.19.0
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.24.0'
+        flutter-version: '3.19.0'
         channel: 'stable'
 
     - name: Create Flutter project
       run: |
         flutter create tasteway --org com.tasteway --project-name tasteway
 
-    - name: Update Gradle wrapper
-      run: |
-        sed -i 's/gradle-7.6.3-all.zip/gradle-8.0-all.zip/' tasteway/android/gradle/wrapper/gradle-wrapper.properties
-
-    - name: Create settings.gradle.kts
-      run: |
-        cat > tasteway/android/settings.gradle.kts << 'SETT'
-        pluginManagement {
-            val flutterSdkPath = run {
-                val properties = java.util.Properties()
-                file("local.properties").inputStream().use { properties.load(it) }
-                val flutterSdkPath = properties.getProperty("flutter.sdk")
-                require(flutterSdkPath != null) { "flutter.sdk not set in local.properties" }
-                flutterSdkPath
-            }
-            includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
-            repositories {
-                google()
-                mavenCentral()
-                gradlePluginPortal()
-            }
-        }
-        plugins {
-            id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-            id("com.android.application") version "8.1.0" apply false
-            id("org.jetbrains.kotlin.android") version "1.8.22" apply false
-        }
-        include(":app")
-        SETT
-
     - name: Unzip and copy source files
       run: |
         unzip tasteway_flutter_with_key.zip -d source_zip
         cp -r source_zip/lib/* tasteway/lib/
+        cp source_zip/pubspec.yaml tasteway/pubspec.yaml
         cp source_zip/android/app/src/main/AndroidManifest.xml tasteway/android/app/src/main/AndroidManifest.xml
 
-    - name: Fix pubspec.yaml
+    - name: Fix yandex_mapkit version
       run: |
         cd tasteway
         sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' pubspec.yaml
-        grep -q "dio:" pubspec.yaml || sed -i '/cupertino_icons:/a\  dio: ^5.4.0' pubspec.yaml
-        grep -q "flutter_bloc:" pubspec.yaml || sed -i '/cupertino_icons:/a\  flutter_bloc: ^8.1.3' pubspec.yaml
-        grep -q "equatable:" pubspec.yaml || sed -i '/cupertino_icons:/a\  equatable: ^2.0.5' pubspec.yaml
-        grep -q "shared_preferences:" pubspec.yaml || sed -i '/cupertino_icons:/a\  shared_preferences: ^2.2.2' pubspec.yaml
-        grep -q "geolocator:" pubspec.yaml || sed -i '/cupertino_icons:/a\  geolocator: ^10.1.0' pubspec.yaml
-        grep -q "url_launcher:" pubspec.yaml || sed -i '/cupertino_icons:/a\  url_launcher: ^6.2.2' pubspec.yaml
-        grep -q "yandex_mapkit:" pubspec.yaml || sed -i '/cupertino_icons:/a\  yandex_mapkit: ^4.3.0' pubspec.yaml
 
-    - name: Create app build.gradle.kts
+    - name: Fix Android build config
       run: |
-        cat > tasteway/android/app/build.gradle.kts << 'APP'
-        plugins {
-            id("com.android.application")
-            id("kotlin-android")
-            id("dev.flutter.flutter-gradle-plugin")
-        }
-        android {
-            namespace = "com.tasteway.app"
-            compileSdk = 34
-            ndkVersion = flutter.ndkVersion
-            compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_17
-                targetCompatibility = JavaVersion.VERSION_17
-            }
-            kotlinOptions {
-                jvmTarget = "17"
-            }
-            defaultConfig {
-                applicationId = "com.tasteway.app"
-                minSdk = 21
-                targetSdk = 34
-                versionCode = flutter.versionCode
-                versionName = flutter.versionName
-            }
-            buildTypes {
-                release {
-                    signingConfig = signingConfigs.getByName("debug")
-                    isMinifyEnabled = false
-                    isShrinkResources = false
-                }
-            }
-        }
-        flutter {
-            source = "../.."
-        }
-        APP
+        cd tasteway
+        sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/' android/app/build.gradle
+        sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/' android/app/build.gradle
+        sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/' android/app/build.gradle
 
     - name: Create assets folders
       run: |
