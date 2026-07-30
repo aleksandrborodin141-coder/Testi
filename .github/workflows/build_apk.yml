@@ -22,40 +22,42 @@ jobs:
         flutter-version: '3.24.0'
         channel: 'stable'
 
-    - name: Unzip project
+    - name: Create Flutter project
       run: |
-        unzip tasteway_flutter_with_key.zip -d tasteway_project
-        ls -la tasteway_project/
+        flutter create tasteway --org com.tasteway --project-name tasteway
+        ls -la tasteway/
+
+    - name: Unzip and copy source files
+      run: |
+        unzip tasteway_flutter_with_key.zip -d source_zip
+        # Копируем Dart-код
+        cp -r source_zip/lib/* tasteway/lib/
+        # Копируем pubspec.yaml
+        cp source_zip/pubspec.yaml tasteway/pubspec.yaml
+        # Копируем AndroidManifest
+        cp source_zip/android/app/src/main/AndroidManifest.xml tasteway/android/app/src/main/AndroidManifest.xml
+        # Копируем app/build.gradle
+        cp source_zip/android/app/build.gradle tasteway/android/app/build.gradle
+        ls -la tasteway/lib/
 
     - name: Fix yandex_mapkit version
       run: |
-        cd tasteway_project
+        cd tasteway
         sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' pubspec.yaml
-
-    - name: Fix Android V2 embedding
-      run: |
-        cd tasteway_project
-        sed -i 's/android:name="io.flutter.app.FlutterApplication"/android:name="${applicationName}"/' android/app/src/main/AndroidManifest.xml
-        mkdir -p android/app/src/main/kotlin/com/example/tasteway
-        echo 'package com.example.tasteway' > android/app/src/main/kotlin/com/example/tasteway/MainActivity.kt
-        echo '' >> android/app/src/main/kotlin/com/example/tasteway/MainActivity.kt
-        echo 'import io.flutter.embedding.android.FlutterActivity' >> android/app/src/main/kotlin/com/example/tasteway/MainActivity.kt
-        echo '' >> android/app/src/main/kotlin/com/example/tasteway/MainActivity.kt
-        echo 'class MainActivity: FlutterActivity()' >> android/app/src/main/kotlin/com/example/tasteway/MainActivity.kt
 
     - name: Get dependencies
       run: |
-        cd tasteway_project
+        cd tasteway
         flutter pub get
 
     - name: Build APK
       run: |
-        cd tasteway_project
+        cd tasteway
         flutter build apk --release
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: TasteWay-APK
-        path: tasteway_project/build/app/outputs/flutter-apk/app-release.apk
+        path: tasteway/build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
