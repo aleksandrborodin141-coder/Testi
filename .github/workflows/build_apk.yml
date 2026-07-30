@@ -26,6 +26,7 @@ jobs:
       run: |
         unzip tasteway_flutter_with_key.zip -d tasteway_project
         ls -la tasteway_project/
+
     - name: Fix yandex_mapkit version
       run: |
         cd tasteway_project
@@ -47,5 +48,4 @@ jobs:
         name: TasteWay-APK
         path: tasteway_project/build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
-
-      
+        
