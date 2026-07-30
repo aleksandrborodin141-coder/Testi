@@ -25,7 +25,48 @@ jobs:
     - name: Create Flutter project
       run: |
         flutter create tasteway --org com.tasteway --project-name tasteway
-        ls -la tasteway/android/app/
+
+    - name: Remove Kotlin DSL files
+      run: |
+        find tasteway/android -name "*.kts" -type f -delete
+        ls -la tasteway/android/
+
+    - name: Create settings.gradle
+      run: |
+        cat > tasteway/android/settings.gradle << 'SETT'
+        pluginManagement {
+            def flutterSdkPath = {
+                def properties = new Properties()
+                file("local.properties").withInputStream { properties.load(it) }
+                def flutterSdkPath = properties.getProperty("flutter.sdk")
+                assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
+                return flutterSdkPath
+            }()
+            includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        plugins {
+            id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+            id "com.android.application" version "8.1.0" apply false
+            id "org.jetbrains.kotlin.android" version "1.8.22" apply false
+        }
+        include ":app"
+        SETT
+
+    - name: Create root build.gradle
+      run: |
+        cat > tasteway/android/build.gradle << 'ROOT'
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        ROOT
 
     - name: Unzip and copy source files
       run: |
@@ -45,11 +86,62 @@ jobs:
         grep -q "url_launcher:" pubspec.yaml || sed -i '/cupertino_icons:/a\  url_launcher: ^6.2.2' pubspec.yaml
         grep -q "yandex_mapkit:" pubspec.yaml || sed -i '/cupertino_icons:/a\  yandex_mapkit: ^4.3.0' pubspec.yaml
 
-    - name: Replace build.gradle
+    - name: Create app build.gradle
       run: |
-        rm -f tasteway/android/app/build.gradle.kts
-        echo 'cGx1Z2lucyB7CiAgICBpZCAiY29tLmFuZHJvaWQuYXBwbGljYXRpb24iCiAgICBpZCAia290bGluLWFuZHJvaWQiCiAgICBpZCAiZGV2LmZsdXR0ZXIuZmx1dHRlci1ncmFkbGUtcGx1Z2luIgp9CgpkZWYgbG9jYWxQcm9wZXJ0aWVzID0gbmV3IFByb3BlcnRpZXMoKQpkZWYgbG9jYWxQcm9wZXJ0aWVzRmlsZSA9IHJvb3RQcm9qZWN0LmZpbGUoJ2xvY2FsLnByb3BlcnRpZXMnKQppZiAobG9jYWxQcm9wZXJ0aWVzRmlsZS5leGlzdHMoKSkgewogICAgbG9jYWxQcm9wZXJ0aWVzRmlsZS53aXRoUmVhZGVyKCdVVEYtOCcpIHsgcmVhZGVyIC0+CiAgICAgICAgbG9jYWxQcm9wZXJ0aWVzLmxvYWQocmVhZGVyKQogICAgfQp9CgpkZWYgZmx1dHRlclZlcnNpb25Db2RlID0gbG9jYWxQcm9wZXJ0aWVzLmdldFByb3BlcnR5KCdmbHV0dGVyLnZlcnNpb25Db2RlJykKaWYgKGZsdXR0ZXJWZXJzaW9uQ29kZSA9PSBudWxsKSB7CiAgICBmbHV0dGVyVmVyc2lvbkNvZGUgPSAnMScKfQoKZGVmIGZsdXR0ZXJWZXJzaW9uTmFtZSA9IGxvY2FsUHJvcGVydGllcy5nZXRQcm9wZXJ0eSgnZmx1dHRlci52ZXJzaW9uTmFtZScpCmlmIChmbHV0dGVyVmVyc2lvbk5hbWUgPT0gbnVsbCkgewogICAgZmx1dHRlclZlcnNpb25OYW1lID0gJzEuMC4wJwp9CgphbmRyb2lkIHsKICAgIG5hbWVzcGFjZSA9ICJjb20udGFzdGV3YXkuYXBwIgogICAgY29tcGlsZVNkayA9IDM0CiAgICBuZGtWZXJzaW9uID0gZmx1dHRlci5uZGtWZXJzaW9uCgogICAgY29tcGlsZU9wdGlvbnMgewogICAgICAgIHNvdXJjZUNvbXBhdGliaWxpdHkgSmF2YVZlcnNpb24uVkVSU0lPTl8xNwogICAgICAgIHRhcmdldENvbXBhdGliaWxpdHkgSmF2YVZlcnNpb24uVkVSU0lPTl8xNwogICAgfQoKICAgIGtvdGxpbk9wdGlvbnMgewogICAgICAgIGp2bVRhcmdldCA9ICcxNycKICAgIH0KCiAgICBzb3VyY2VTZXRzIHsKICAgICAgICBtYWluLmphdmEuc3JjRGlycyArPSAnc3JjL21haW4va290bGluJwogICAgfQoKICAgIGRlZmF1bHRDb25maWcgewogICAgICAgIGFwcGxpY2F0aW9uSWQgImNvbS50YXN0ZXdheS5hcHAiCiAgICAgICAgbWluU2RrID0gMjEKICAgICAgICB0YXJnZXRTZGsgPSAzNAogICAgICAgIHZlcnNpb25Db2RlIGZsdXR0ZXJWZXJzaW9uQ29kZS50b0ludGVnZXIoKQogICAgICAgIHZlcnNpb25OYW1lIGZsdXR0ZXJWZXJzaW9uTmFtZQogICAgfQoKICAgIGJ1aWxkVHlwZXMgewogICAgICAgIHJlbGVhc2UgewogICAgICAgICAgICBzaWduaW5nQ29uZmlnIHNpZ25pbmdDb25maWdzLmRlYnVnCiAgICAgICAgICAgIG1pbmlmeUVuYWJsZWQgZmFsc2UKICAgICAgICAgICAgc2hyaW5rUmVzb3VyY2VzIGZhbHNlCiAgICAgICAgfQogICAgfQp9CgpmbHV0dGVyIHsKICAgIHNvdXJjZSAnLi4vLi4nCn0K' | base64 -d > tasteway/android/app/build.gradle
-        cat tasteway/android/app/build.gradle
+        cat > tasteway/android/app/build.gradle << 'APP'
+        plugins {
+            id "com.android.application"
+            id "kotlin-android"
+            id "dev.flutter.flutter-gradle-plugin"
+        }
+        def localProperties = new Properties()
+        def localPropertiesFile = rootProject.file('local.properties')
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.withReader('UTF-8') { reader ->
+                localProperties.load(reader)
+            }
+        }
+        def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+        if (flutterVersionCode == null) {
+            flutterVersionCode = '1'
+        }
+        def flutterVersionName = localProperties.getProperty('flutter.versionName')
+        if (flutterVersionName == null) {
+            flutterVersionName = '1.0.0'
+        }
+        android {
+            namespace = "com.tasteway.app"
+            compileSdk = 34
+            ndkVersion = flutter.ndkVersion
+            compileOptions {
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
+            }
+            kotlinOptions {
+                jvmTarget = '17'
+            }
+            sourceSets {
+                main.java.srcDirs += 'src/main/kotlin'
+            }
+            defaultConfig {
+                applicationId "com.tasteway.app"
+                minSdk = 21
+                targetSdk = 34
+                versionCode flutterVersionCode.toInteger()
+                versionName flutterVersionName
+            }
+            buildTypes {
+                release {
+                    signingConfig signingConfigs.debug
+                    minifyEnabled false
+                    shrinkResources false
+                }
+            }
+        }
+        flutter {
+            source '../..'
+        }
+        APP
 
     - name: Create assets folders
       run: |
@@ -71,4 +163,3 @@ jobs:
         name: TasteWay-APK
         path: tasteway/build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
-        
