@@ -29,7 +29,11 @@ jobs:
     - name: Remove Kotlin DSL files
       run: |
         find tasteway/android -name "*.kts" -type f -delete
-        ls -la tasteway/android/
+
+    - name: Update Gradle wrapper
+      run: |
+        sed -i 's/gradle-7.6.3-all.zip/gradle-8.0-all.zip/' tasteway/android/gradle/wrapper/gradle-wrapper.properties
+        cat tasteway/android/gradle/wrapper/gradle-wrapper.properties
 
     - name: Create settings.gradle
       run: |
