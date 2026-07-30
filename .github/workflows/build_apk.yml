@@ -25,25 +25,30 @@ jobs:
     - name: Create Flutter project
       run: |
         flutter create tasteway --org com.tasteway --project-name tasteway
-        ls -la tasteway/
 
     - name: Unzip and copy source files
       run: |
         unzip tasteway_flutter_with_key.zip -d source_zip
-        # Копируем Dart-код
         cp -r source_zip/lib/* tasteway/lib/
-        # Копируем pubspec.yaml
         cp source_zip/pubspec.yaml tasteway/pubspec.yaml
-        # Копируем AndroidManifest
         cp source_zip/android/app/src/main/AndroidManifest.xml tasteway/android/app/src/main/AndroidManifest.xml
-        # Копируем app/build.gradle
-        cp source_zip/android/app/build.gradle tasteway/android/app/build.gradle
-        ls -la tasteway/lib/
 
     - name: Fix yandex_mapkit version
       run: |
         cd tasteway
         sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' pubspec.yaml
+
+    - name: Fix Android build config
+      run: |
+        cd tasteway
+        sed -i 's/namespace = .*/namespace = "com.tasteway.app"/' android/app/build.gradle
+        sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/' android/app/build.gradle
+        sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/' android/app/build.gradle
+        sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 34/' android/app/build.gradle
+
+    - name: Create assets folders
+      run: |
+        mkdir -p tasteway/assets/images tasteway/assets/fonts
 
     - name: Get dependencies
       run: |
@@ -61,3 +66,4 @@ jobs:
         name: TasteWay-APK
         path: tasteway/build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
+        
