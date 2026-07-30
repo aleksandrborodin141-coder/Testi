@@ -26,6 +26,10 @@ jobs:
       run: |
         unzip tasteway_flutter_with_key.zip -d tasteway_project
         ls -la tasteway_project/
+    - name: Fix yandex_mapkit version
+      run: |
+        cd tasteway_project
+        sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' pubspec.yaml
 
     - name: Get dependencies
       run: |
