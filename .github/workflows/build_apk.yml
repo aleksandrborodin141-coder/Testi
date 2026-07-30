@@ -26,21 +26,21 @@ jobs:
       run: |
         flutter create tasteway --org com.tasteway --project-name tasteway
 
-    - name: Remove Kotlin DSL files
+    - name: Update Gradle wrapper
       run: |
-        find tasteway/android -name "*.kts" -type f -delete
+        sed -i 's/gradle-7.6.3-all.zip/gradle-8.0-all.zip/' tasteway/android/gradle/wrapper/gradle-wrapper.properties
 
-    - name: Create settings.gradle
+    - name: Create settings.gradle.kts
       run: |
-        cat > tasteway/android/settings.gradle << 'SETT'
+        cat > tasteway/android/settings.gradle.kts << 'SETT'
         pluginManagement {
-            def flutterSdkPath = {
-                def properties = new Properties()
-                file("local.properties").withInputStream { properties.load(it) }
-                def flutterSdkPath = properties.getProperty("flutter.sdk")
-                assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
-                return flutterSdkPath
-            }()
+            val flutterSdkPath = run {
+                val properties = java.util.Properties()
+                file("local.properties").inputStream().use { properties.load(it) }
+                val flutterSdkPath = properties.getProperty("flutter.sdk")
+                require(flutterSdkPath != null) { "flutter.sdk not set in local.properties" }
+                flutterSdkPath
+            }
             includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
             repositories {
                 google()
@@ -49,23 +49,12 @@ jobs:
             }
         }
         plugins {
-            id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-            id "com.android.application" version "7.4.2" apply false
-            id "org.jetbrains.kotlin.android" version "1.8.22" apply false
+            id("dev.flutter.flutter-plugin-loader") version "1.0.0"
+            id("com.android.application") version "8.1.0" apply false
+            id("org.jetbrains.kotlin.android") version "1.8.22" apply false
         }
-        include ":app"
+        include(":app")
         SETT
-
-    - name: Create root build.gradle
-      run: |
-        cat > tasteway/android/build.gradle << 'ROOT'
-        allprojects {
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-        ROOT
 
     - name: Unzip and copy source files
       run: |
@@ -85,60 +74,42 @@ jobs:
         grep -q "url_launcher:" pubspec.yaml || sed -i '/cupertino_icons:/a\  url_launcher: ^6.2.2' pubspec.yaml
         grep -q "yandex_mapkit:" pubspec.yaml || sed -i '/cupertino_icons:/a\  yandex_mapkit: ^4.3.0' pubspec.yaml
 
-    - name: Create app build.gradle (Groovy DSL)
+    - name: Create app build.gradle.kts
       run: |
-        cat > tasteway/android/app/build.gradle << 'APP'
+        cat > tasteway/android/app/build.gradle.kts << 'APP'
         plugins {
-            id "com.android.application"
-            id "kotlin-android"
-            id "dev.flutter.flutter-gradle-plugin"
-        }
-        def localProperties = new Properties()
-        def localPropertiesFile = rootProject.file('local.properties')
-        if (localPropertiesFile.exists()) {
-            localPropertiesFile.withReader('UTF-8') { reader ->
-                localProperties.load(reader)
-            }
-        }
-        def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-        if (flutterVersionCode == null) {
-            flutterVersionCode = '1'
-        }
-        def flutterVersionName = localProperties.getProperty('flutter.versionName')
-        if (flutterVersionName == null) {
-            flutterVersionName = '1.0.0'
+            id("com.android.application")
+            id("kotlin-android")
+            id("dev.flutter.flutter-gradle-plugin")
         }
         android {
-            namespace "com.tasteway.app"
-            compileSdk 34
-            ndkVersion flutter.ndkVersion
+            namespace = "com.tasteway.app"
+            compileSdk = 34
+            ndkVersion = flutter.ndkVersion
             compileOptions {
-                sourceCompatibility JavaVersion.VERSION_17
-                targetCompatibility JavaVersion.VERSION_17
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
             }
             kotlinOptions {
-                jvmTarget = '17'
-            }
-            sourceSets {
-                main.java.srcDirs += 'src/main/kotlin'
+                jvmTarget = "17"
             }
             defaultConfig {
-                applicationId "com.tasteway.app"
-                minSdk 21
-                targetSdk 34
-                versionCode flutterVersionCode.toInteger()
-                versionName flutterVersionName
+                applicationId = "com.tasteway.app"
+                minSdk = 21
+                targetSdk = 34
+                versionCode = flutter.versionCode
+                versionName = flutter.versionName
             }
             buildTypes {
                 release {
-                    signingConfig signingConfigs.debug
-                    minifyEnabled false
-                    shrinkResources false
+                    signingConfig = signingConfigs.getByName("debug")
+                    isMinifyEnabled = false
+                    isShrinkResources = false
                 }
             }
         }
         flutter {
-            source '../..'
+            source = "../.."
         }
         APP
 
@@ -162,4 +133,3 @@ jobs:
         name: TasteWay-APK
         path: tasteway/build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
-        
