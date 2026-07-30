@@ -30,11 +30,6 @@ jobs:
       run: |
         find tasteway/android -name "*.kts" -type f -delete
 
-    - name: Update Gradle wrapper
-      run: |
-        sed -i 's/gradle-7.6.3-all.zip/gradle-8.0-all.zip/' tasteway/android/gradle/wrapper/gradle-wrapper.properties
-        cat tasteway/android/gradle/wrapper/gradle-wrapper.properties
-
     - name: Create settings.gradle
       run: |
         cat > tasteway/android/settings.gradle << 'SETT'
@@ -55,7 +50,7 @@ jobs:
         }
         plugins {
             id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-            id "com.android.application" version "8.1.0" apply false
+            id "com.android.application" version "7.4.2" apply false
             id "org.jetbrains.kotlin.android" version "1.8.22" apply false
         }
         include ":app"
@@ -90,7 +85,7 @@ jobs:
         grep -q "url_launcher:" pubspec.yaml || sed -i '/cupertino_icons:/a\  url_launcher: ^6.2.2' pubspec.yaml
         grep -q "yandex_mapkit:" pubspec.yaml || sed -i '/cupertino_icons:/a\  yandex_mapkit: ^4.3.0' pubspec.yaml
 
-    - name: Create app build.gradle
+    - name: Create app build.gradle (Groovy DSL)
       run: |
         cat > tasteway/android/app/build.gradle << 'APP'
         plugins {
@@ -114,9 +109,9 @@ jobs:
             flutterVersionName = '1.0.0'
         }
         android {
-            namespace = "com.tasteway.app"
-            compileSdk = 34
-            ndkVersion = flutter.ndkVersion
+            namespace "com.tasteway.app"
+            compileSdk 34
+            ndkVersion flutter.ndkVersion
             compileOptions {
                 sourceCompatibility JavaVersion.VERSION_17
                 targetCompatibility JavaVersion.VERSION_17
@@ -129,8 +124,8 @@ jobs:
             }
             defaultConfig {
                 applicationId "com.tasteway.app"
-                minSdk = 21
-                targetSdk = 34
+                minSdk 21
+                targetSdk 34
                 versionCode flutterVersionCode.toInteger()
                 versionName flutterVersionName
             }
@@ -167,3 +162,4 @@ jobs:
         name: TasteWay-APK
         path: tasteway/build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
+        
