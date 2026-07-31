@@ -26,15 +26,6 @@ jobs:
       run: |
         flutter create tasteway --org com.tasteway --project-name tasteway
 
-    - name: Show build.gradle BEFORE fix
-      run: |
-        echo "=== Files in android/app ==="
-        ls -la tasteway/android/app/
-        echo "=== build.gradle content ==="
-        cat tasteway/android/app/build.gradle 2>/dev/null || echo "No build.gradle"
-        echo "=== build.gradle.kts content ==="
-        cat tasteway/android/app/build.gradle.kts 2>/dev/null || echo "No build.gradle.kts"
-
     - name: Unzip and copy source files
       run: |
         unzip tasteway_flutter_with_key.zip -d source_zip
@@ -45,44 +36,13 @@ jobs:
       run: |
         sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' tasteway/pubspec.yaml
 
-    - name: Fix Android build config
+    - name: Fix Android build config with sed
       run: |
-        python3 << 'PYEOF'
-        import os
-        
-        gradle_file = None
-        if os.path.exists('tasteway/android/app/build.gradle.kts'):
-            gradle_file = 'tasteway/android/app/build.gradle.kts'
-            print("Found build.gradle.kts")
-        elif os.path.exists('tasteway/android/app/build.gradle'):
-            gradle_file = 'tasteway/android/app/build.gradle'
-            print("Found build.gradle")
-        else:
-            print("ERROR: No build.gradle found!")
-            exit(1)
-        
-        with open(gradle_file, 'r') as f:
-            content = f.read()
-        
-        print("=== BEFORE ===")
-        print(content)
-        
-        if gradle_file.endswith('.kts'):
-            content = content.replace('compileSdk = flutter.compileSdkVersion', 'compileSdk = 34')
-            content = content.replace('minSdk = flutter.minSdkVersion', 'minSdk = 21')
-            content = content.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 34')
-        else:
-            content = content.replace('compileSdkVersion flutter.compileSdkVersion', 'compileSdkVersion 34')
-            content = content.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 21')
-            content = content.replace('targetSdkVersion flutter.targetSdkVersion', 'targetSdkVersion 34')
-        
-        with open(gradle_file, 'w') as f:
-            f.write(content)
-        
-        print("=== AFTER ===")
-        with open(gradle_file, 'r') as f:
-            print(f.read())
-        PYEOF
+        sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/' tasteway/android/app/build.gradle
+        sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/' tasteway/android/app/build.gradle
+        sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 34/' tasteway/android/app/build.gradle
+        echo "=== Fixed values ==="
+        grep -E "compileSdk|minSdk|targetSdk" tasteway/android/app/build.gradle
 
     - name: Add permissions to AndroidManifest
       run: |
