@@ -8,52 +8,44 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: stable
 
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: temurin
-        java-version: 17
-- name: Fix dependencies
-  run: |
-    cd project
-    sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' pubspec.yaml
-    grep yandex_mapkit pubspec.yaml
+      - name: Extract project
+        run: |
+          unzip tasteway_flutter_with_key.zip -d project
+          find project -name pubspec.yaml
 
+      - name: Fix dependencies
+        run: |
+          cd project
+          sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' pubspec.yaml
+          grep yandex_mapkit pubspec.yaml
 
-- name: Get dependencies
-  run: |
-    cd project
-    flutter pub get
+      - name: Get dependencies
+        run: |
+          cd project
+          flutter pub get
 
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: 3.24.0
-        channel: stable
+      - name: Build APK
+        run: |
+          cd project
+          flutter build apk --release
 
-
-    - name: Extract project
-      run: |
-        unzip tasteway_flutter_with_key.zip -d project
-        find project -name pubspec.yaml
-
-
-    
-
-
-    - name: Build APK
-      run: |
-        cd project
-        flutter build apk --release
-
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: TasteWay-APK
-        path: project/build/app/outputs/flutter-apk/app-release.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TasteWay-APK
+          path: project/build/app/outputs/flutter-apk/app-release.apk
