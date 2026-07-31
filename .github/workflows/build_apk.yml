@@ -25,12 +25,19 @@ jobs:
     - name: Create Flutter project
       run: |
         flutter create tasteway --org com.tasteway --project-name tasteway
+        echo "=== Files in android/app ==="
+        ls -la tasteway/android/app/
 
     - name: Update Gradle wrapper to 8.5
       run: |
-        cd tasteway/android
-        sed -i 's/gradle-[0-9.]*-all.zip/gradle-8.5-all.zip/' gradle/wrapper/gradle-wrapper.properties
-        cat gradle/wrapper/gradle-wrapper.properties
+        sed -i 's/gradle-[0-9.]*-all.zip/gradle-8.5-all.zip/' tasteway/android/gradle/wrapper/gradle-wrapper.properties
+
+    - name: Replace build.gradle.kts via base64
+      run: |
+        rm -f tasteway/android/app/build.gradle.kts
+        echo 'cGx1Z2lucyB7CiAgICBpZCAiY29tLmFuZHJvaWQuYXBwbGljYXRpb24iCiAgICBpZCAia290bGluLWFuZHJvaWQiCiAgICBpZCAiZGV2LmZsdXR0ZXIuZmx1dHRlci1ncmFkbGUtcGx1Z2luIgp9CgpkZWYgbG9jYWxQcm9wZXJ0aWVzID0gbmV3IFByb3BlcnRpZXMoKQpkZWYgbG9jYWxQcm9wZXJ0aWVzRmlsZSA9IHJvb3RQcm9qZWN0LmZpbGUoJ2xvY2FsLnByb3BlcnRpZXMnKQppZiAobG9jYWxQcm9wZXJ0aWVzRmlsZS5leGlzdHMoKSkgewogICAgbG9jYWxQcm9wZXJ0aWVzRmlsZS53aXRoUmVhZGVyKCdVVEYtOCcpIHsgcmVhZGVyIC0+CiAgICAgICAgbG9jYWxQcm9wZXJ0aWVzLmxvYWQocmVhZGVyKQogICAgfQp9CgpkZWYgZmx1dHRlclZlcnNpb25Db2RlID0gbG9jYWxQcm9wZXJ0aWVzLmdldFByb3BlcnR5KCdmbHV0dGVyLnZlcnNpb25Db2RlJykKaWYgKGZsdXR0ZXJWZXJzaW9uQ29kZSA9PSBudWxsKSB7CiAgICBmbHV0dGVyVmVyc2lvbkNvZGUgPSAnMScKfQoKZGVmIGZsdXR0ZXJWZXJzaW9uTmFtZSA9IGxvY2FsUHJvcGVydGllcy5nZXRQcm9wZXJ0eSgnZmx1dHRlci52ZXJzaW9uTmFtZScpCmlmIChmbHV0dGVyVmVyc2lvbk5hbWUgPT0gbnVsbCkgewogICAgZmx1dHRlclZlcnNpb25OYW1lID0gJzEuMC4wJwp9CgphbmRyb2lkIHsKICAgIG5hbWVzcGFjZSA9ICJjb20udGFzdGV3YXkuYXBwIgogICAgY29tcGlsZVNkayA9IDM0CiAgICBuZGtWZXJzaW9uID0gZmx1dHRlci5uZGtWZXJzaW9uCgogICAgY29tcGlsZU9wdGlvbnMgewogICAgICAgIHNvdXJjZUNvbXBhdGliaWxpdHkgSmF2YVZlcnNpb24uVkVSU0lPTl8xNwogICAgICAgIHRhcmdldENvbXBhdGliaWxpdHkgSmF2YVZlcnNpb24uVkVSU0lPTl8xNwogICAgfQoKICAgIGtvdGxpbk9wdGlvbnMgewogICAgICAgIGp2bVRhcmdldCA9ICcxNycKICAgIH0KCiAgICBzb3VyY2VTZXRzIHsKICAgICAgICBtYWluLmphdmEuc3JjRGlycyArPSAnc3JjL21haW4va290bGluJwogICAgfQoKICAgIGRlZmF1bHRDb25maWcgewogICAgICAgIGFwcGxpY2F0aW9uSWQgImNvbS50YXN0ZXdheS5hcHAiCiAgICAgICAgbWluU2RrID0gMjEKICAgICAgICB0YXJnZXRTZGsgPSAzNAogICAgICAgIHZlcnNpb25Db2RlIGZsdXR0ZXJWZXJzaW9uQ29kZS50b0ludGVnZXIoKQogICAgICAgIHZlcnNpb25OYW1lIGZsdXR0ZXJWZXJzaW9uTmFtZQogICAgfQoKICAgIGJ1aWxkVHlwZXMgewogICAgICAgIHJlbGVhc2UgewogICAgICAgICAgICBzaWduaW5nQ29uZmlnIHNpZ25pbmdDb25maWdzLmRlYnVnCiAgICAgICAgICAgIG1pbmlmeUVuYWJsZWQgZmFsc2UKICAgICAgICAgICAgc2hyaW5rUmVzb3VyY2VzIGZhbHNlCiAgICAgICAgfQogICAgfQp9CgpmbHV0dGVyIHsKICAgIHNvdXJjZSAnLi4vLi4nCn0K' | base64 -d > tasteway/android/app/build.gradle.kts
+        echo "=== build.gradle.kts created ==="
+        cat tasteway/android/app/build.gradle.kts
 
     - name: Unzip and copy source files
       run: |
@@ -41,22 +48,6 @@ jobs:
     - name: Fix pubspec.yaml
       run: |
         sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' tasteway/pubspec.yaml
-
-    - name: Fix Kotlin DSL build config
-      run: |
-        python3 << 'PYEOF'
-        import os
-        kts_file = 'tasteway/android/app/build.gradle.kts'
-        if os.path.exists(kts_file):
-            with open(kts_file, 'r') as f:
-                content = f.read()
-            content = content.replace('compileSdk = flutter.compileSdkVersion', 'compileSdk = 34')
-            content = content.replace('minSdk = flutter.minSdkVersion', 'minSdk = 21')
-            content = content.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 34')
-            with open(kts_file, 'w') as f:
-                f.write(content)
-            print("Fixed build.gradle.kts")
-        PYEOF
 
     - name: Create assets folders
       run: |
