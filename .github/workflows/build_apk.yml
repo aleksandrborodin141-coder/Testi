@@ -29,7 +29,6 @@ jobs:
     - name: Remove Kotlin DSL files
       run: |
         find tasteway/android -name "*.kts" -type f -delete
-        find tasteway/android -name "*.kts" -type f || echo "All .kts removed"
 
     - name: Create settings.gradle
       run: |
@@ -86,7 +85,10 @@ jobs:
         sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/' tasteway/android/app/build.gradle
         sed -i 's/minifyEnabled true/minifyEnabled false/' tasteway/android/app/build.gradle
         sed -i 's/shrinkResources true/shrinkResources false/' tasteway/android/app/build.gradle
-        cat tasteway/android/app/build.gradle
+
+    - name: Fix yandex_mapkit version
+      run: |
+        sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' tasteway/pubspec.yaml
 
     - name: Create assets folders
       run: |
