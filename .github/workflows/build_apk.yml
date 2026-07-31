@@ -10,101 +10,62 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup Java 11
+    - name: Setup Java 21
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '11'
+        java-version: '21'
 
-    - name: Setup Flutter 3.16.0
+    - name: Setup Flutter 3.24.0
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.16.0'
+        flutter-version: '3.24.0'
         channel: 'stable'
 
-    - name: Unzip project
+    - name: Create Flutter project
       run: |
-        unzip tasteway_flutter_with_key.zip -d tasteway
+        flutter create tasteway --org com.tasteway --project-name tasteway
 
-    - name: Create missing Android files
+    - name: Update Gradle wrapper
       run: |
-        cd tasteway
-        
-        mkdir -p android/app/src/main/kotlin/com/tasteway
-        mkdir -p android/gradle/wrapper
-        
-        cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
-        distributionBase=GRADLE_USER_HOME
-        distributionPath=wrapper/dists
-        distributionUrl=https\://services.gradle.org/distributions/gradle-7.5-all.zip
-        networkTimeout=10000
-        validateDistributionUrl=true
-        zipStoreBase=GRADLE_USER_HOME
-        zipStorePath=wrapper/dists
-        EOF
-        
-        cat > android/settings.gradle << 'EOF'
-        pluginManagement {
-            def flutterSdkPath = {
-                def properties = new Properties()
-                file("local.properties").withInputStream { properties.load(it) }
-                def flutterSdkPath = properties.getProperty("flutter.sdk")
-                assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
-                return flutterSdkPath
-            }()
-            includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
-            repositories {
-                google()
-                mavenCentral()
-                gradlePluginPortal()
-            }
-        }
-        plugins {
-            id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-            id "com.android.application" version "7.3.0" apply false
-            id "org.jetbrains.kotlin.android" version "1.7.10" apply false
-        }
-        include ":app"
-        EOF
-        
-        cat > android/build.gradle << 'EOF'
-        allprojects {
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-        EOF
-        
-        cat > android/local.properties << EOF
-        flutter.sdk=${FLUTTER_ROOT}
-        flutter.buildMode=release
-        flutter.versionName=1.0.0
-        flutter.versionCode=1
-        EOF
-        
-        cat > android/gradle.properties << 'EOF'
-        org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-        android.useAndroidX=true
-        android.enableJetifier=true
-        android.nonTransitiveRClass=true
-        EOF
+        cd tasteway/android
+        ./gradlew wrapper --gradle-version 8.5 || true
+        sed -i 's/gradle-[0-9.]*-all.zip/gradle-8.5-all.zip/' gradle/wrapper/gradle-wrapper.properties
+        cat gradle/wrapper/gradle-wrapper.properties
+
+    - name: Copy source files (NO android/)
+      run: |
+        unzip tasteway_flutter_with_key.zip -d source_zip
+        cp -r source_zip/lib/* tasteway/lib/
+        cp source_zip/pubspec.yaml tasteway/pubspec.yaml
 
     - name: Fix pubspec.yaml
       run: |
-        sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.1.0/' tasteway/pubspec.yaml
-        sed -i 's/yandex_mapkit: >=4.2.0/yandex_mapkit: ^4.1.0/' tasteway/pubspec.yaml
+        sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' tasteway/pubspec.yaml
 
-    - name: Fix app build.gradle
+    - name: Fix Kotlin DSL build config
       run: |
-        cd tasteway
-        if [ -f android/app/build.gradle ]; then
-          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 33/' android/app/build.gradle
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/' android/app/build.gradle
-          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 33/' android/app/build.gradle
-          sed -i 's/minifyEnabled true/minifyEnabled false/' android/app/build.gradle
-          sed -i 's/shrinkResources true/shrinkResources false/' android/app/build.gradle
-        fi
+        python3 << 'PYEOF'
+        import os
+        kts_file = 'tasteway/android/app/build.gradle.kts'
+        if os.path.exists(kts_file):
+            with open(kts_file, 'r') as f:
+                content = f.read()
+            content = content.replace('compileSdk = flutter.compileSdkVersion', 'compileSdk = 34')
+            content = content.replace('minSdk = flutter.minSdkVersion', 'minSdk = 21')
+            content = content.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 34')
+            with open(kts_file, 'w') as f:
+                f.write(content)
+            print("Fixed build.gradle.kts")
+            print(content[:800])
+        else:
+            print("ERROR: build.gradle.kts not found!")
+            exit(1)
+        PYEOF
+
+    - name: Add permissions to AndroidManifest
+      run: |
+        sed -i '/<\/manifest>/i\    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' tasteway/android/app/src/main/AndroidManifest.xml
 
     - name: Create assets folders
       run: |
