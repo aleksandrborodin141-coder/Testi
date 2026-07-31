@@ -25,21 +25,14 @@ jobs:
     - name: Unzip project
       run: |
         unzip tasteway_flutter_with_key.zip -d tasteway
-        cd tasteway
-        echo "=== Project files ==="
-        ls -la
-        echo "=== Android files ==="
-        ls -la android/ 2>/dev/null || echo "No android folder"
 
     - name: Create missing Android files
       run: |
         cd tasteway
         
-        # Create android folder structure if missing
         mkdir -p android/app/src/main/kotlin/com/tasteway
         mkdir -p android/gradle/wrapper
         
-        # Create gradle-wrapper.properties
         cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
         distributionBase=GRADLE_USER_HOME
         distributionPath=wrapper/dists
@@ -50,14 +43,6 @@ jobs:
         zipStorePath=wrapper/dists
         EOF
         
-        # Create gradlew
-        cat > android/gradlew << 'EOF'
-        #!/bin/sh
-        exec "$(dirname "$0")/gradle/wrapper/gradle-wrapper.jar" "$@"
-        EOF
-        chmod +x android/gradlew
-        
-        # Create settings.gradle
         cat > android/settings.gradle << 'EOF'
         pluginManagement {
             def flutterSdkPath = {
@@ -82,7 +67,6 @@ jobs:
         include ":app"
         EOF
         
-        # Create root build.gradle
         cat > android/build.gradle << 'EOF'
         allprojects {
             repositories {
@@ -92,7 +76,6 @@ jobs:
         }
         EOF
         
-        # Create local.properties
         cat > android/local.properties << EOF
         flutter.sdk=${FLUTTER_ROOT}
         flutter.buildMode=release
@@ -102,7 +85,8 @@ jobs:
 
     - name: Fix pubspec.yaml
       run: |
-        sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' tasteway/pubspec.yaml
+        sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.1.0/' tasteway/pubspec.yaml
+        sed -i 's/yandex_mapkit: >=4.2.0/yandex_mapkit: ^4.1.0/' tasteway/pubspec.yaml
 
     - name: Fix app build.gradle
       run: |
