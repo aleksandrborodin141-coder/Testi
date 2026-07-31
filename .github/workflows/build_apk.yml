@@ -51,6 +51,10 @@ jobs:
           cd project
           grep -R "io.flutter.app" android || true
           grep -R "PluginRegistry" android || true
+      - name: Check plugins
+        run: |
+          cd project
+          grep -R "PluginRegistry" ~/.pub-cache/hosted/pub.dev/ || true
       - name: Build APK
         run: |
           cd project
