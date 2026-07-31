@@ -26,7 +26,10 @@ jobs:
       - name: Extract project
         run: |
           unzip tasteway_flutter_with_key.zip -d project
-
+- name: Fix pubspec
+  run: |
+    cd project
+    find . -name pubspec.yaml -exec sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' {} \;
       - name: Fix pubspec
         run: |
           cd project
