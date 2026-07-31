@@ -15,57 +15,28 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: 17
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
-          channel: stable
 
-      - name: Extract project
+      - name: Find project
         run: |
-          unzip tasteway_flutter_with_key.zip -d project
-- name: Fix pubspec
-  run: |
-    cd project
-    find . -name pubspec.yaml -exec sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' {} \;
-      - name: Fix pubspec
-        run: |
-          cd project
-          sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' pubspec.yaml
-
-      - name: Fix Android embedding
-        run: |
-          cd project
-
-          find android -name MainActivity.java -exec sed -i \
-          's/io.flutter.app.FlutterActivity/io.flutter.embedding.android.FlutterActivity/g' {} \;
-
-          find android -name MainActivity.kt -exec sed -i \
-          's/io.flutter.app.FlutterActivity/io.flutter.embedding.android.FlutterActivity/g' {} \;
+          ls -la
+          find . -name pubspec.yaml
 
       - name: Get dependencies
         run: |
-          cd project
           flutter pub get
-      - name: Search old Android embedding
-        run: |
-          cd project
-          grep -R "io.flutter.app" android || true
-          grep -R "PluginRegistry" android || true
-      - name: Check plugins
-        run: |
-          cd project
-          grep -R "PluginRegistry" ~/.pub-cache/hosted/pub.dev/ || true
+
       - name: Build APK
         run: |
-          cd project
-          flutter clean
           flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TasteWay-APK
-          path: project/build/app/outputs/flutter-apk/app-release.apk
+          name: app-release
+          path: build/app/outputs/flutter-apk/app-release.apk
