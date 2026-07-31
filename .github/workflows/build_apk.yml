@@ -46,7 +46,11 @@ jobs:
         run: |
           cd project
           flutter pub get
-
+      - name: Search old Android embedding
+        run: |
+          cd project
+          grep -R "io.flutter.app" android || true
+          grep -R "PluginRegistry" android || true
       - name: Build APK
         run: |
           cd project
