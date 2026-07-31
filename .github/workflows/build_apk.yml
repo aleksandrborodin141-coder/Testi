@@ -6,109 +6,55 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout code
+
+    - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Java 21
+
+    - name: Setup Java 17
       uses: actions/setup-java@v4
       with:
-        distribution: 'temurin'
-        java-version: '21'
+        distribution: temurin
+        java-version: 17
 
-    - name: Setup Flutter 3.24.0
+
+    - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.24.0'
-        channel: 'stable'
+        flutter-version: 3.24.0
+        channel: stable
+        cache: true
 
-    - name: Create Flutter project
-      run: |
-        flutter create tasteway --org com.tasteway --project-name tasteway
-        echo "=== Project structure ==="
-        ls -la tasteway/android/app/
 
-    - name: Unzip and copy source files
-      run: |
-        unzip tasteway_flutter_with_key.zip -d source_zip
-        cp -r source_zip/lib/* tasteway/lib/
-        cp source_zip/pubspec.yaml tasteway/pubspec.yaml
+    - name: Flutter doctor
+      run:
+        flutter doctor -v
 
-    - name: Fix pubspec.yaml
-      run: |
-        sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' tasteway/pubspec.yaml
-        echo "=== pubspec.yaml dependencies ==="
-        grep -A 20 "dependencies:" tasteway/pubspec.yaml
 
-    - name: Fix Android build config
-      run: |
-        python3 << 'PYEOF'
-        import os
-        import re
-        
-        app_dir = 'tasteway/android/app'
-        kts_file = os.path.join(app_dir, 'build.gradle.kts')
-        groovy_file = os.path.join(app_dir, 'build.gradle')
-        
-        if os.path.exists(kts_file):
-            print("Found build.gradle.kts (Kotlin DSL)")
-            with open(kts_file, 'r') as f:
-                content = f.read()
-            
-            # Fix compileSdk, minSdk, targetSdk
-            content = content.replace('compileSdk = flutter.compileSdkVersion', 'compileSdk = 34')
-            content = content.replace('minSdk = flutter.minSdkVersion', 'minSdk = 21')
-            content = content.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 34')
-            
-            with open(kts_file, 'w') as f:
-                f.write(content)
-            print("Fixed build.gradle.kts")
-            
-        elif os.path.exists(groovy_file):
-            print("Found build.gradle (Groovy DSL)")
-            with open(groovy_file, 'r') as f:
-                content = f.read()
-            
-            content = content.replace('compileSdkVersion flutter.compileSdkVersion', 'compileSdkVersion 34')
-            content = content.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 21')
-            content = content.replace('targetSdkVersion flutter.targetSdkVersion', 'targetSdkVersion 34')
-            content = content.replace('minifyEnabled true', 'minifyEnabled false')
-            content = content.replace('shrinkResources true', 'shrinkResources false')
-            
-            with open(groovy_file, 'w') as f:
-                f.write(content)
-            print("Fixed build.gradle")
-        
-        else:
-            print("ERROR: No build.gradle or build.gradle.kts found!")
-            exit(1)
-        PYEOF
-
-    - name: Add permissions to AndroidManifest
-      run: |
-        MANIFEST="tasteway/android/app/src/main/AndroidManifest.xml"
-        # Add permissions before closing </manifest>
-        sed -i '/<\/manifest>/i\    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' "$MANIFEST"
-
-    - name: Create assets folders
-      run: |
-        mkdir -p tasteway/assets/images tasteway/assets/fonts
-        touch tasteway/assets/images/.gitkeep
-        touch tasteway/assets/fonts/.gitkeep
-
-    - name: Get dependencies
-      run: |
-        cd tasteway
+    - name: Install dependencies
+      run:
         flutter pub get
 
+
+    - name: Generate files
+      run:
+        dart run build_runner build --delete-conflicting-outputs
+
+
+    - name: Analyze
+      run:
+        flutter analyze
+
+
     - name: Build APK
-      run: |
-        cd tasteway
+      run:
         flutter build apk --release
+
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: TasteWay-APK
-        path: tasteway/build/app/outputs/flutter-apk/app-release.apk
-        retention-days: 30
+        name: TasteWay-release
+        path: build/app/outputs/flutter-apk/app-release.apk
