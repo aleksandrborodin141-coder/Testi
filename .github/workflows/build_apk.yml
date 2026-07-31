@@ -18,7 +18,17 @@ jobs:
       with:
         distribution: temurin
         java-version: 17
+- name: Fix dependencies
+  run: |
+    cd project
+    sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' pubspec.yaml
+    grep yandex_mapkit pubspec.yaml
 
+
+- name: Get dependencies
+  run: |
+    cd project
+    flutter pub get
 
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
@@ -33,10 +43,7 @@ jobs:
         find project -name pubspec.yaml
 
 
-    - name: Get dependencies
-      run: |
-        cd project
-        flutter pub get
+    
 
 
     - name: Build APK
