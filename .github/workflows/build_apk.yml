@@ -26,47 +26,32 @@ jobs:
       - name: Extract project
         run: |
           unzip tasteway_flutter_with_key.zip -d project
-          find project -name pubspec.yaml
 
-      - name: Fix dependencies
+      - name: Fix pubspec
         run: |
           cd project
           sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' pubspec.yaml
-          grep yandex_mapkit pubspec.yaml
+
+      - name: Fix Android embedding
+        run: |
+          cd project
+
+          find android -name MainActivity.java -exec sed -i \
+          's/io.flutter.app.FlutterActivity/io.flutter.embedding.android.FlutterActivity/g' {} \;
+
+          find android -name MainActivity.kt -exec sed -i \
+          's/io.flutter.app.FlutterActivity/io.flutter.embedding.android.FlutterActivity/g' {} \;
 
       - name: Get dependencies
         run: |
           cd project
           flutter pub get
 
-      - name: Fix Android embedding
-  run: |
-    cd project
-
-    python3 << 'PYEOF'
-    from pathlib import Path
-
-    manifest = Path("android/app/src/main/AndroidManifest.xml")
-
-    if manifest.exists():
-        text = manifest.read_text()
-
-        text = text.replace(
-            "io.flutter.app.FlutterApplication",
-            "android.app.Application"
-        )
-
-        manifest.write_text(text)
-
-    PYEOF
-
-
-- name: Build APK
-  run: |
-    cd project
-    flutter clean
-    flutter pub get
-    flutter build apk --release
+      - name: Build APK
+        run: |
+          cd project
+          flutter clean
+          flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
