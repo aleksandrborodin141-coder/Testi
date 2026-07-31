@@ -10,11 +10,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup Java 21
+    - name: Setup Java 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '21'
+        java-version: '17'
 
     - name: Setup Flutter 3.22.0
       uses: subosito/flutter-action@v2
@@ -30,20 +30,15 @@ jobs:
       run: |
         unzip tasteway_flutter_with_key.zip -d source_zip
         cp -r source_zip/lib/* tasteway/lib/
-        cp source_zip/pubspec.yaml tasteway/pubspec.yaml
 
     - name: Fix pubspec.yaml
       run: |
+        cp source_zip/pubspec.yaml tasteway/pubspec.yaml
         sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' tasteway/pubspec.yaml
 
-    - name: Fix Android build config
+    - name: Add permissions to AndroidManifest
       run: |
-        sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/' tasteway/android/app/build.gradle
-        sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/' tasteway/android/app/build.gradle
-        sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/' tasteway/android/app/build.gradle
-        sed -i 's/minifyEnabled true/minifyEnabled false/' tasteway/android/app/build.gradle
-        sed -i 's/shrinkResources true/shrinkResources false/' tasteway/android/app/build.gradle
-        cat tasteway/android/app/build.gradle
+        sed -i '/<\/manifest>/i\    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' tasteway/android/app/src/main/AndroidManifest.xml
 
     - name: Create assets folders
       run: |
