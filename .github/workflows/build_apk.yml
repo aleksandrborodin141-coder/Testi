@@ -16,60 +16,15 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Setup Flutter 3.24.0
+    - name: Setup Flutter 3.22.0
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.24.0'
+        flutter-version: '3.22.0'
         channel: 'stable'
 
     - name: Create Flutter project
       run: |
         flutter create tasteway --org com.tasteway --project-name tasteway
-
-    - name: Remove Kotlin DSL files
-      run: |
-        find tasteway/android -name "*.kts" -type f -delete
-
-    - name: Create settings.gradle
-      run: |
-        cat > tasteway/android/settings.gradle << 'EOF'
-        pluginManagement {
-            def flutterSdkPath = {
-                def properties = new Properties()
-                file("local.properties").withInputStream { properties.load(it) }
-                def flutterSdkPath = properties.getProperty("flutter.sdk")
-                assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
-                return flutterSdkPath
-            }()
-            includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
-            repositories {
-                google()
-                mavenCentral()
-                gradlePluginPortal()
-            }
-        }
-        plugins {
-            id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-            id "com.android.application" version "8.1.0" apply false
-            id "org.jetbrains.kotlin.android" version "1.8.22" apply false
-        }
-        include ":app"
-        EOF
-
-    - name: Create root build.gradle
-      run: |
-        cat > tasteway/android/build.gradle << 'EOF'
-        allprojects {
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-        EOF
-
-    - name: Update Gradle wrapper
-      run: |
-        sed -i 's/gradle-7.6.3-all.zip/gradle-8.0-all.zip/' tasteway/android/gradle/wrapper/gradle-wrapper.properties
 
     - name: Unzip and copy source files
       run: |
@@ -78,17 +33,17 @@ jobs:
         cp source_zip/pubspec.yaml tasteway/pubspec.yaml
         cp source_zip/android/app/src/main/AndroidManifest.xml tasteway/android/app/src/main/AndroidManifest.xml
 
-    - name: Copy and fix build.gradle
-      run: |
-        cp source_zip/android/app/build.gradle tasteway/android/app/build.gradle
-        sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/' tasteway/android/app/build.gradle
-        sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/' tasteway/android/app/build.gradle
-        sed -i 's/minifyEnabled true/minifyEnabled false/' tasteway/android/app/build.gradle
-        sed -i 's/shrinkResources true/shrinkResources false/' tasteway/android/app/build.gradle
-
-    - name: Fix yandex_mapkit version
+    - name: Fix pubspec.yaml
       run: |
         sed -i 's/yandex_mapkit: \^4.4.0/yandex_mapkit: ^4.3.0/' tasteway/pubspec.yaml
+
+    - name: Fix Android build config
+      run: |
+        cd tasteway
+        sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/' android/app/build.gradle
+        sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/' android/app/build.gradle
+        sed -i 's/minifyEnabled true/minifyEnabled false/' android/app/build.gradle
+        sed -i 's/shrinkResources true/shrinkResources false/' android/app/build.gradle
 
     - name: Create assets folders
       run: |
@@ -110,3 +65,4 @@ jobs:
         name: TasteWay-APK
         path: tasteway/build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
+        
