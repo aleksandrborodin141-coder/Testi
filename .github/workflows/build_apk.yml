@@ -9,11 +9,11 @@ jobs:
 
     steps:
 
-    - name: Checkout repository
+    - name: Checkout
       uses: actions/checkout@v4
 
 
-    - name: Setup Java 17
+    - name: Setup Java
       uses: actions/setup-java@v4
       with:
         distribution: temurin
@@ -25,36 +25,28 @@ jobs:
       with:
         flutter-version: 3.24.0
         channel: stable
-        cache: true
 
 
-    - name: Flutter doctor
-      run:
-        flutter doctor -v
+    - name: Extract project
+      run: |
+        unzip tasteway_flutter_with_key.zip -d project
+        find project -name pubspec.yaml
 
 
-    - name: Install dependencies
-      run:
+    - name: Get dependencies
+      run: |
+        cd project
         flutter pub get
 
 
-    - name: Generate files
-      run:
-        dart run build_runner build --delete-conflicting-outputs
-
-
-    - name: Analyze
-      run:
-        flutter analyze
-
-
     - name: Build APK
-      run:
+      run: |
+        cd project
         flutter build apk --release
 
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: TasteWay-release
-        path: build/app/outputs/flutter-apk/app-release.apk
+        name: TasteWay-APK
+        path: project/build/app/outputs/flutter-apk/app-release.apk
